@@ -1,0 +1,40 @@
+# Websockets
+
+Websocket support in Rhino is provided by [ActionCable](https://guides.rubyonrails.org/action_cable_overview.html) and [Solid Cable](https://github.com/rails/solid_cable) and is configured by default.
+
+Rhino provides websocket authentication by default, but NOT authorization - ensure the user has access to the data they are requesting.
+
+### Creating a channel
+
+Create a channel with standard rails generator:
+
+```bash
+rails g channel Test
+```
+
+## Connecting to a channel
+
+The front end provides a `useCable` hook that can be used to connect to a channel.
+
+```jsx
+const consumer = useCable();
+const [messages, setMessages] = useState([]);
+
+useEffect(() => {
+  if (!resource?.id) return;
+
+  consumer.subscriptions.create(
+    { channel: "TestChannel", id: resource.id },
+    {
+      connected() {},
+      received(data) {
+        setMessages((currentValues) => {
+          const a = [...currentValues, data];
+
+          return a;
+        });
+      },
+    }
+  );
+}, [consumer, resource.id]);
+```

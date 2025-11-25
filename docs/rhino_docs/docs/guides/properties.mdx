@@ -1,0 +1,303 @@
+# Properties
+
+Properties are generated from attributes on an ActiveRecord model. They are used to define the data model for a resource and are used to generate the API schema, validation, and serialization.
+
+## Restricting properties
+
+Properties on a model can be restricted for reading and or writing in the API.
+
+### Including specific properties
+
+```ruby
+class User < ApplicationRecord
+  rhino_properties_read only: %i[id uid name email]
+  rhino_properties_create only: %i[name nickname email]
+  rhino_properties_update only: %i[name nickname]
+end
+```
+
+### Excluding specific properties
+
+```ruby
+class User < ApplicationRecord
+  rhino_properties_read except: %i[password]
+end
+```
+
+```ruby
+class User < ApplicationRecord
+  rhino_properties_write except: %i[email]
+end
+```
+
+### Restricting array operations
+
+Array operations for nested properties can be limited by the `rhino_properties_array` method. This can be used disallow creation, update or destruction of array items.
+
+```ruby
+accepts_nested_attributes_for :og_meta_tags, allow_destroy: true
+
+# Disallow creation of new og_meta_tags
+rhino_properties_array og_meta_tags: { creatable: false, updatable: false, destroyable: false }
+```
+
+:::info
+The `allow_destroy` option for `accepts_nested_attributes_for` must be set to `true` for the `destroyable` option to work. The `allow_destroy` option is used for the `destroyable` setting by default.
+:::
+
+## Overriding default settings
+
+### Specifying a format
+
+A specific format can be set for a property. For example, a phone number can be of type string, but it can be formatted as a phone number in the front end.
+
+```ruby
+rhino_properties_format phone: :phone, blog_categories: :join_table_simple
+```
+
+### Setting property display name
+
+The readable name is used to label the property in forms, display, filters and more in the front end. By default it is based on the name of the property in the backend. The readable name for one or more properties can be overridden:
+
+```ruby
+rhino_properties_readable_name title: "Name", description: "Body"
+```
+
+## File attachments
+
+Files can be attached to ActiveRecord models with [Active Storage](https://guides.rubyonrails.org/active_storage_overview.html) and referenced by referring to the attachment relationship.
+
+```ruby
+class BlogPost < ApplicationRecord
+  belongs_to :blog
+
+  has_one_attachment :header_image
+
+  rhino_owner :blog
+  rhino_references [:blog, :header_image_attachment]
+end
+```
+
+or for many attachments:
+
+```ruby
+class BlogPost < ApplicationRecord
+  belongs_to :blog
+
+  has_many_attachments :post_image
+
+  rhino_owner :blog
+  rhino_references [:blog, :post_image_attachments]
+end
+```
+
+## Tags
+
+Rhino includes the [acts_as_taggable](https://github.com/mbleigh/acts-as-taggable-on) gem for tagging support. Simply add the `acts_as_taggable_on :tags` to your model and Rhino will automatically add the tags property to the resource.
+
+```ruby
+class BlogPost < ApplicationRecord
+  belongs_to :blog
+
+  acts_as_taggable_on :tags
+
+  rhino_owner :blog
+  rhino_references %i[blog]
+end
+```
+
+## Trees
+
+:::warning
+Working but not yet documented
+:::
+
+## Additional formats
+
+Rhino provides additional backend helpers for common formats that can be used to validate the format of a property.
+
+### Country
+
+Use the country validator based on [countries gem](https://github.com/countries/countries) for backend validation. Your model might look something like this:
+
+```ruby
+  # Validate the optional country
+  validates :country, country: { allow_blank: true }
+```
+
+```ruby
+  # Validate the required alpha3 country
+  validates :country, country: { alpha3: true }
+```
+
+### Currency
+
+Use the field as currency in the front end. Your model might look something like this:
+
+```ruby
+  # Set the format for the attribute
+  rhino_properties_format amount: :currency
+```
+
+:::info
+Currency should be stored as a decimal type in the database.
+:::
+
+### IPv4
+
+Use the ipv4 validator for backend validation. Your model might look something like this:
+
+```ruby
+  # Validate the optional country
+  validates :ipv4, ipv4: { allow_blank: true }
+```
+
+### Mac Address
+
+Use the mac address validator for backend validation. Your model might look something like this:
+
+```ruby
+  # Validate the optional country
+  validates :mac_address, mac_address: { allow_blank: true }
+```
+
+### Phone
+
+Use phonelib for backend validation. It is built based on [Google's libphonenumber](https://github.com/google/libphonenumber) which is the standard for this. Your model might look something like this:
+
+```ruby
+  # Set the format for the attribute
+  rhino_properties_format phone: :phone
+
+  # Normalize the phone number to e164 format
+  before_validation :normalize_phone
+
+  # Validate the phone number is possible (limited check)
+  validates :phone, phone: { message: "not a valid phone number", possible: true }
+
+  private
+    def normalize_phone
+      self.phone = Phonelib.parse(phone).full_e164.presence
+    end
+```
+
+## Changing Validation Messages
+
+Sometimes you want to rewrite the default validation message for an attribute.
+
+E.g. Let's say you have the following `Customer` model:
+
+```ruby
+class Customer < ApplicationRecord
+  validates :email, presence: true, email: true, uniqueness: true
+end
+```
+
+The customer table has `name` and you want to add the `name` to the error message in case the email has already been taken.
+Here is how you can achieve that:
+
+```ruby
+class Customer < ApplicationRecord
+  validates :email, presence: true, email: true, uniqueness: { message: lambda do |object, data|
+                                                                            customer = Customer.find_by(email: data[:value])
+                                                                            "has already been taken by customer: #{customer.name}"
+                                                                          end }
+end
+```
+
+Reference: https://guides.rubyonrails.org/active_record_validations.html#message
+
+## Synthetic Attributes
+
+At times you may need to "synthesize" an attribute that is not stored in the database. This is useful for attributes that are derived from other attributes or attributes that are not stored in the database but are needed for display or other purposes.
+
+Because Rhino introspects the attributes for an [ActiveRecord](https://guides.rubyonrails.org/active_record_basics.html) model in order to provide API responses, standard Rails techniques can be used to define synthetic attributes. For example, the following model defines a `fahrenheit` attribute that is derived from the `celsius` attribute which is stored in the database.
+
+```ruby
+class Temperature < ApplicationRecord
+  attribute :fahrenheit, :float
+
+  rhino_owner_global
+
+  # Convert the celsius attribute to fahrenheit
+  def fahrenheit
+    celsius * 9 / 5 + 32
+  end
+
+  # Convert the passed in fahrenheit value to celsius and store it in the celsius attribute
+  def fahrenheit=
+    celsius = (fahrenheit - 32) * 5 / 9
+  end
+
+  validates :celsius, presence: true
+end
+```
+
+:::tip
+If you are doing a simple conversion and not accepting both as writeable, you may want to consider using [virtual (generated) columns](#virtual-generated-attributes) instead.
+:::
+
+### Property manipulations
+
+All normal manipulations of properties are supported.
+
+```ruby
+class Temperature < ApplicationRecord
+  attribute :fahrenheit, :float
+
+  rhino_owner_global
+  # highlight-next-line
+  # Only fahrenheit to be set on update, not create
+  # highlight-next-line
+  rhino_properties_create except: :fahrenheit
+
+  # Convert the celsius attribute to fahrenheit
+  def fahrenheit
+    celsius * 9 / 5 + 32
+  end
+
+  # Convert the passed in fahrenheit value to celsius and store it in the celsius attribute
+  def fahrenheit=
+    celsius = (fahrenheit - 32) * 5 / 9
+  end
+
+  validates :celsius, presence: true
+end
+```
+
+## Generated Columns
+
+Generated columns are similar to synthetic attributes but are stored in the database. Sample migrations:
+
+```ruby
+def change
+  create_table :temps do |t|
+    t.numeric :celsius
+    t.virtual :fahrenheit, type: :numeric, as: 'celsius * 9 / 5 + 32', stored: true
+  end
+end
+```
+
+```ruby
+def change
+  add_column :temps, :fahrenheit, :numeric, as: 'celsius * 9 / 5 + 32', stored: true, virtual: true
+end
+```
+
+Rhino supports generated columns in the API. The generated column will be included in the API response by default and can be used in filters and sorting.
+
+:::note
+Rails does not support virtual (unstored) columns at this time.
+:::
+
+## Read Only Attributes
+
+Attributes listed as readonly with [`attr_readonly`](https://api.rubyonrails.org/classes/ActiveRecord/ReadonlyAttributes/ClassMethods.html#method-i-attr_readonly) will be used to create a new record but will not be updated on an existing record.
+
+```ruby
+class Blog < ActiveRecord::Base
+  attr_readonly :title
+end
+```
+
+Rhino supports read only attributes in the API and will mark them as creatable but not updatable.

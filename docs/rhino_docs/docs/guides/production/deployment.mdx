@@ -1,0 +1,52 @@
+# Deployment
+
+This guide is an introduction to deploying Rhino
+
+## General considerations
+
+Rhino uses server side cookies for auth, so you must have [domains that meet the auth rules](/docs/concepts/auth)
+
+## Heroku
+
+The default Heroku stack `heroku-24` is recommended. The deployment needs the `heroku/nodejs` and `heroku/ruby` buildpack. Along with the following add-ons:
+
+    heroku-postgresql:essential-0
+    papertrail:choklad
+    rollbar:trial-5k
+
+Rollbar is required for [error trapping](error_reporting).
+
+The server requires the following environment variables to be set:
+
+```env
+    LANG=en_US.UTF-8
+    RAILS_ENV=production
+    RHINO_APP_URL=https://<host-name>
+    SECRET_KEY_BASE=<generated-secret-key>
+    SENDGRID_API_KEY=<sendgrid-api-key>
+```
+
+Any additional environment variables that need to be passed to the frontend should be prefixed with `VITE_`
+
+## Heroku Docker
+
+Rhino uses the heroku.yml method of building and deploying docker images. https://devcenter.heroku.com/articles/build-docker-images-heroku-yml
+
+The buildpack for docker should be set to the container type `heroku stack:set container -a <app-name>`
+
+## Docker
+
+```bash
+$ docker build -t .
+$ docker run -it --rm -p 3002:3002 -e PORT=3002 -e DISABLE_SSL=1 -e RHINO_APP_URL=http://localhost:3002
+```
+
+PORT will default to `3000` if not specified.
+
+DISABLE_SSL=1 is necessary for SSL termination earlier in the process.
+
+RHINO_APP_URL defaults to `http://localhost:3000` if not specified.
+
+DB_NAME, DB_HOST, DB_USERNAME, DB_PASSWORD are also required for the postgres db.
+
+DEFAULT_EMAIL_SENDER defaults to `from@example.com` if not specified.

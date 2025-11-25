@@ -1,0 +1,85 @@
+# Geocoding
+
+Geocoding capabilities can be utilized to Rhino with the already included [geocoder](https://github.com/alexreisner/geocoder) gem. Models should be geocoded with the `geocoded_by` method and the `after_validation` callback. The `geocode` method can be used to trigger the geocoding process.
+
+```ruby title="app/models/location.rb"
+class Location < ApplicationRecord
+  geocoded_by :address
+  after_validation :geocode, if: :will_save_change_to_address?
+end
+```
+
+:::tip
+The `will_save_change_to_address?` method is used to trigger the geocoding process only if the address has changed - this can help to avoid unnecessary API calls.
+:::
+
+and reverse geocoding can be done with the `reverse_geocoded_by` method if latitude and longitude columns are already in the model:
+
+```ruby title="app/models/location.rb"
+class Location < ApplicationRecord
+  reverse_geocoded_by :latitude, :longitude
+end
+```
+
+## API Access
+
+Enable the Geocoding API in the [Google Cloud Console](https://console.cloud.google.com/apis/library/geocoding-backend.googleapis.com).
+
+Get an API key from [Google Cloud Credentials](https://console.cloud.google.com/apis/credentials).
+
+## Configuration
+
+Update `config/initializers/geocoder.rb` with your API key and the lookup service you want to use:
+
+```ruby title="config/initializers/geocoder.rb"
+Geocoder.configure(
+  # Geocoding options
+  # timeout: 3,                 # geocoding service timeout (secs)
+  # highlight-next-line
+  lookup: :google,         # name of geocoding service (symbol)
+  # ip_lookup: :ipinfo_io,      # name of IP address geocoding service (symbol)
+  # language: :en,              # ISO-639 language code
+  # use_https: false,           # use HTTPS for lookup requests? (if supported)
+  # http_proxy: nil,            # HTTP proxy server (user:pass@host:port)
+  # https_proxy: nil,           # HTTPS proxy server (user:pass@host:port)
+
+  # API key for geocoding service
+  # highlight-next-line
+  api_key: ENV['GOOGLE_API_KEY'],
+
+  # cache: nil,                 # cache object (must respond to #[], #[]=, and #del)
+  # cache_prefix: 'geocoder:',  # prefix (string) to use for all cache keys
+
+  # Exceptions that should not be rescued by default
+  # (if you want to implement custom error handling);
+  # supports SocketError and Timeout::Error
+  # always_raise: [],
+
+  # Calculation options
+  # units: :mi,                 # :km for kilometers or :mi for miles
+  # distances: :linear          # :spherical or :linear
+)
+```
+
+## Testing
+
+`test/test_helper.rb` contains a default stub for the geocoder:
+
+```ruby title="test/test_helper.rb"
+# Set the geocoder to test mode and give it a default stub
+Geocoder.configure(lookup: :test, ip_lookup: :test)
+Geocoder::Lookup::Test.set_default_stub(
+  [
+    {
+      "coordinates" => [41.2565, -95.9345],
+      "address" => "Omaha, NE, US",
+      "state" => "Nebraska",
+      "state_code" => "NE",
+      "country" => "United States",
+      "country_code" => "US"
+    }
+  ]
+)
+```
+
+Add additional stubs for testing as needed.

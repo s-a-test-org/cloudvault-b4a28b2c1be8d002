@@ -1,0 +1,981 @@
+# Release Notes
+
+## 3.0.0-beta.37
+
+The key changes in this release are:
+
+- Rails 8.0.2 and Ruby 3.4.1
+- Vite 6, Vitest 3
+- RHINO_APP_URL replaces ROOT_URL, FRONT_END_URL and VITE_API_ROOT_PATH
+
+### RHINO_APP_URL
+
+ROOT_URL and FRONT_END_URL have been the same thing for the last couple of releases so they need not be different. RHINO_APP_URL is now the only URL that needs to be set in the environment, following the pattern coming in Rails 8.1 https://github.com/rails/rails/pull/42520
+
+VITE_API_ROOT_PATH is no longer required, its assumed that the client is served from the same domain as the server.
+
+## 3.0.0-beta.36
+
+The key changes in this release are:
+
+- Rails 7.2.2.1
+- Solid Queue, Solid Cable and Solid Cache to provide a more robust and performant queuing, websockets and caching solution in production.
+- Rhino ActiveAdmin for Super Admin integration simplification
+- ActiveStorage [representations, variants and previews](../guides/file_storage.mdx#variants-previews-and-representations) in API responses
+
+### Solid Queue
+
+See [Background Jobs](../guides/jobs.mdx) for more information.
+
+- Resque can be continued to be used for existing apps, but it is fairly simple to switch to Solid Queue
+
+### Solid Cable
+
+See [Websockets](../guides/websockets.mdx) for more information.
+
+### ActiveAdmin and Super Admin
+
+The `app/admin/rhino.rb` file has been removed active admin models must be generated individually for performance and correctness.
+
+See the updated [Super Admin](../guides/super_admin.mdx#generating-an-admin-resource) guide for more information.
+
+Copy `https://github.com/rhino-project/rhino-project-template/blob/v3.0.0-beta.35/app/admin/rhino.rb` to `app/admin` to keep the old functionality.
+
+## 3.0.0-beta.35
+
+The key changes in this release are:
+
+- Ruby 3.3.6 and Rails 7.2.2
+- Simplified navigation with PrimaryNavigation and SecondaryNavigation
+- [Dark mode support](../guides/ui/general#theming)
+- Support namespaced models in the API
+- Support class_named owners in the API
+
+### Rails 7.2.2
+
+Notes about upgrading to Rails 7.2 from Rails 7.1
+
+- apply_rubocop_autocorrect_after_generate! is enabled by default
+- brakeman and rubocop are now included by default in the bin/ dir
+  - `bin/rubocop` and `bin/brakeman` to directly run
+- `app/controllers/application_controller.rb` now enforces modern browsers for loading (406 if now)
+  - https://api.rubyonrails.org/classes/ActionController/AllowBrowser/ClassMethods.html#method-i-allow_browser
+- Use the new default [rubocop-rails-omakase](https://github.com/rails/rubocop-rails-omakase)
+  - With some additional rules enabled
+  - `bin/rubocop -A` to clean up after
+- Active Job will automatically defer the enqueuing to after the transaction is committed, and drop the job if the transaction is rolled back. See [https://github.com/rails/rails/blob/7-2-stable/activejob/CHANGELOG.md] for more details
+
+### Simplified navigation with PrimaryNavigation and SecondaryNavigation
+
+CustomPrimaryNavigation and CustomSecondaryNavigation have been removed and combined with PrimaryNavigation and SecondaryNavigation. Simply edit `PrimaryNavigation.jsx` and `SecondaryNavigation.jsx` to customize the navigation.
+
+The `<ModelNavSection />` element can also be passed except or only props to filter the models shown in the navigation.
+
+```
+<ModelNavSection models={['model1', 'model2']} />
+```
+
+```
+<ModelNavSection models={['model1', 'model2']} />
+```
+
+## 3.0.0-beta.34
+
+The key changes in this release are:
+
+- Unified Rails and Ruby Vite repo
+
+:::info
+It is recommended to update to v3.0.0-beta.33 before updating to v3.0.0-beta.34
+:::
+
+### Unified Rails and Ruby Vite repo
+
+In order to transform your repo, you will need to do the following:
+
+- Run the `combined-ruby-vite-mono.sh` from https://github.com/rhino-project/mono-repo-scripts
+- Follow the [standard update](updating.mdx) instructions for beta 34
+
+#### Routing
+
+- Make sure routes are ordered correctly and that all custom routes come before the catch all front end route
+
+#### Deployment
+
+- Set build packs to nodejs and ruby for heroku
+
+```bash
+heroku buildpacks:clear -a <APP-NAME>
+heroku buildpacks:add heroku/nodejs -a <APP-NAME>
+heroku buildpacks:add heroku/ruby -a <APP-NAME>
+```
+
+- Set VITE_API_ROOT_PATH to the server
+- Remove APP_BASE
+
+## 3.0.0-beta.33
+
+The key changes in this release are:
+
+- Automatic static.js updating via Vite plugin
+- General tidying in preparation for unified rails and ruby_vite repo
+
+## 3.0.0-beta.32
+
+The key changes in this release are:
+
+- Ruby 3.3.4 and Rails 7.1.3.4
+
+:::info
+It is recommended to update to v3.0.0-beta.31 before updating to v3.0.0-beta.32
+:::
+
+### Ruby 3.3.4 and Rails
+
+General guidance about the upgrade is at [upgrading Ruby on Rails](https://guides.rubyonrails.org/upgrading_ruby_on_rails.html#upgrading-from-rails-7-0-to-rails-7-1)
+
+- Please review the [the new config defaults](https://github.com/rails/rails/blob/7-1-stable/railties/lib/rails/generators/rails/app/templates/config/initializers/new_framework_defaults_7_1.rb.tt) that are enabled
+- [Library code is now autoloaded](https://github.com/rhino-project/rhino-project-template/pull/73/files#diff-861b299234b0d927800607a4d3017acf00ddc0ec361111adb4c41f0bd72b10faR17) as per [7.1 defaults](https://guides.rubyonrails.org/upgrading_ruby_on_rails.html#config-autoload-lib-and-config-autoload-lib-once)
+- [RAILS_SERVE_STATIC_FILES](https://github.com/rails/rails/pull/49852) and [RAILS_LOG_TO_STDOUT](https://github.com/rails/rails/pull/47138) are no longer required in production, they are enabled by default
+- Removed the following initializers that were not used and no longer included by default in new projects
+  - server/config/initializers/application_controller_renderer.rb
+  - server/config/initializers/backtrace_silencers.rb
+  - server/config/initializers/mime_types.rb
+- Ensured that if SECRET_KEY_BASE is not properly set in production, the server will not start
+
+## 3.0.0-beta.31
+
+The key changes in this release are:
+
+- Default to no js in jsx
+- Vitest 2
+- Drop CircleCI support (Github Actions only)
+
+### Default to no js in jsx
+
+Previously for `create-react-app` project compatibility, the jsx transform was used for all .js files. Files can be renamed to .jsx to use the jsx transform. This is now the default for new projects. `enableJsxInJs` can be set to `true` for the RhinoVitePlugin to use the jsx transform for .js files.
+
+From the root of the project run the following script to rename all .js files to .jsx:
+
+```bash
+#!/bin/bash
+
+# Navigate to the client/src directory
+cd client/src
+
+# Find and rename all .js files to .jsx, excluding client/src/models/static.js
+find . -type f -name "*.js" ! -path "./models/static.js" | while read file; do
+  git mv "$file" "${file%.js}.jsx"
+done
+
+# Find and rename all .spec.js.snap files to .spec.jsx.snap
+find . -type f -name "*.spec.js.snap" | while read file; do
+  git mv "$file" "${file%.spec.js.snap}.spec.jsx.snap"
+done
+
+# Navigate back to the original directory
+cd -
+```
+
+## 3.0.0-beta.30
+
+The key changes in this release are:
+
+- Merge overrides in order of specificity
+- [ActiveAdmin 3.2.2](../guides/super_admin#security)
+
+### Merge overrides in order of specificity
+
+Overrides are now merged in order of specificity. This means that global overrides are applied first, then model overrides and finally attribute overrides. This allows for more fine grained control over the overrides. Previously more specific overrides would completely override the less specific override.
+
+```jsx rhino.config.js
+const rhinoConfig = {
+  version: 1,
+  components: {
+    ModelIndex: { props: { defaultLimit: 20 } },
+    // highlight-next-line
+    // This would not inherit defaultLimit of 20 previously, now it does
+    blog: { ModelIndex: { props: { defaultSort: "updated_at" } } },
+  },
+};
+```
+
+## 3.0.0-beta.29
+
+The key changes in this release are:
+
+- Ruby 3.1.6
+- Node 20.14.0
+- Support [rhino and vite environment](./environment) variable extensions in the client
+- Use rhino-project gem dependencies for the server
+- [Geospatial filtering](../concepts/rest_api/geospatial)
+- Allow [ApplicationShell to be overrideable](../guides/ui/shell.mdx)
+- Rhino::TestCase::ModelTest
+
+## 3.0.0-beta.28
+
+The key changes in this release are:
+
+- Rails 7.0.8.4
+- Vite 5.2.13 and Vitest 1.6.0
+- Support github actions for CI
+- Top level dev tool setup
+- [Rhino model generator](../guides/models#generating-models)
+
+:::tip
+If coming from 3.0.0-betay.27, When following the [upgrade](./updating.mdx) instructions you will need to merge with `git merge rhino-project-template-v3.0.0-beta.28 --allow-unrelated-histories`
+:::
+
+## 3.0.0-beta.27
+
+The key changes in this release are:
+
+- Docker and docker-compose improvements for production and development
+- Rubocop and eslint plugins for Rhino
+- Simplified front end build process with plugins in Rhino vite plugin
+- Various security updates
+- Allow owner reference and reference filters to be overridable and provide typeahead for owner reference
+- Allow [PrimaryNavigation to be overrideable](../guides/ui/sidebar.mdx) and take model lists directly including arrays, functions and objects for roles
+- Configurable assets for logos
+- Limit unopened notifications to 10
+
+:::danger
+This is the last "boilerplate" release. Switch to [rhino-project-tempate](https://github.com/rhino-project/rhino-project-template) after this.
+:::
+
+## 3.0.0-beta.26
+
+The key changes in this release are:
+
+- Use [open source rhino](https://github.com/rhino-project/rhino-project)
+- Remove deprecated `models/overrides.js`
+- Drop base url in tsconfig and tsconfig pathts
+
+### Open source rhino
+
+The primary change that needs to be made is the imports in app specific code. For example:
+
+```diff
+- import { useModelShow } from "rhino";
++ import { useModelShow } from "@rhino-project/core";
+```
+
+Rhino projects a `jscodeshift` transform to help with this migration. To use it, run the following command:
+
+```bash
+npx jscodeshift@latest -t https://raw.githubusercontent.com/rhino-project/rhino-project/beta/packages/codemods/src/v1/replace-import-specifier.js src
+```
+
+### Remove deprecated `models/overrides.js`
+
+The `models/overrides.js` file has been deprecated and is no longer used. The overrides are now defined in `rhino.config.js` and are more powerful and flexible. The `models/overrides.js` file can be removed from your project.
+
+### Drop base url in tsconfig and tsconfig pathts
+
+The `baseUrl` and `paths` properties in `tsconfig.json` are no longer used. This should not affect most projects
+
+:::tip
+It is recommended to update to v3.0.0-beta.25 before updating to v3.0.0-beta.26
+:::
+
+## 3.0.0-beta.25
+
+The key changes in this release are:
+
+- Support delegated types and 1-1 nested associations in API
+- [Coalescing filter support](../concepts/rest_api/filtering#coalescing-operators)
+- Re-architected ModelCardIndex (renamed to ModelIndexCardGrid)
+- Name space devise_token_auth headers to avoid model conflicts
+- Update vite to 5.0.12 and vitest to 1.2.1
+- Install [@rhino-project/eslint-plugin-rhino](https://www.npmjs.com/package/@rhino-project/eslint-plugin-rhino) by default
+- Use package.json for bootstrap-icons
+
+## 3.0.0-beta.24
+
+The key changes in this release are:
+
+- [Rhino dev tool](../guides/development/debugging#dev-tool)
+- Global error handling for forms
+- ModelCellIdentifier that links to show page
+- Use `VITE_` prefix for environment variables instead of `REACT_APP_` everywhere - the build will break if the old prefix is used
+- Handle restrict_with_exception and restrict_with_error via API errors and global error handling
+- Full error messages for crud api errors
+- Mark read, create and update permissions for [read only](../guides/properties.mdx#read-only-attributes) and virtual column attributes correctly
+- Resque (2.6.0), resque-heroku-signals (2.6.0) and resque-scheduler (4.10.2) updates
+- react-use 17.4.2 - hook utility library
+
+## 3.0.0-beta.23
+
+The key changes in this release are:
+
+- Node 20.10.0, npm 10.2.3 and Vite 5.0.8
+- React Hook Form 7.49.2
+- [Per environment seeds](../guides/importing/seeding)
+- [Index controller improvements](../reference/front_end/controllers#usemodelindexcontroller)
+  - Default base owner filter
+  - Separation between dynamic and default filters
+  - Resetting of default filters
+  - Pre-computed filter counts
+- Global form disablement
+
+### Index controller improvements
+
+Previously `<ModelIndex />` was passed `filter`, `limit`, `offset`, `order`, `search` as props. These were used by the model index controller to compute the default state. This was not ideal as it was not clear which filters were dynamic and which were default. It also made it difficult to reset the default filters. These props were renamed to `defaultFilter`, `defaultLimit`, `defaultOffset`, `defaultOrder`, `defaultSearch` and the model index controller now computes the default state from these props.
+
+`setFilter` now only sets the dynamic filters (on top of the defaultFilter) and the defaultFilter can be changed with `setDefaultFilter` for tabbed browsing for instance. The model index controller provides `fullFilter` composed of the default, initial and dynamic filters.
+
+Finally the model index controller now computes the total number of dynamic filters and the total number of full filters. This is useful for displaying the number of filters applied.
+
+### Global form disablement
+
+The model create and edit controllers now support a `disabled` prop which will disable all form fields. This is useful for displaying a read only view of the form or for disabling the form while a mutation is in progress. Forms are disabled by default while a mutation is in progress.
+
+## 3.0.0-beta.22
+
+The key changes in this release are:
+
+- Vite (4.4.12) and Vitest (1.0.1) upgrades
+- Testing improvements
+  - Cypress integration into CI
+  - React test library linting
+- UI fixes
+  - Always mark labels as required
+  - No capitalization for enums
+- `rails rhino:open_api_export` places `static.js` in the correct client location
+
+## 3.0.0-beta.21
+
+The key changes in this release are:
+
+- Mono repo
+
+:::tip
+It is recommended to update to v3.0.0-beta.20 before updating to v3.0.0-beta.21
+:::
+
+### Mono repo
+
+The client and server are now in a single repo. This will make it easier to maintain and update. In order to update to this version you will need to do the following:
+
+#### Install git-filter-repo
+
+```bash
+brew install git-filter-repo
+```
+
+#### Checkout the update scripts
+
+```bash
+git clone git@github.com:nubinary/mono-repo-scripts.git
+```
+
+#### Run the update scripts
+
+Passing the base name of the repo and the github organization as arguments to the script. For example:
+
+```bash
+mono-repo-scripts/combined-mono.sh blog_ myorg
+```
+
+If you have existing repos 'myorg/blog_client' and 'myorg/blog_server'. This will create `mono-construction/blog_mono` which is the new mono repo
+
+#### Create a new repo in github
+
+Create a new repo in github for the mono repo. For example `myorg/blog_mono`
+
+#### Add the new repo as a remote
+
+```bash
+ git remote add origin git@github.com:myorg/blog_mono.git
+```
+
+#### Push the new repo
+
+```bash
+git push -u origin main
+```
+
+#### Setup dev environment
+
+1. Copy existing env files
+2. Run `rails rhino:dev:setup`
+
+#### Deploy
+
+1. Connect the new repo to heroku (client and server)
+2. Add the additional buildpacks and set the APP_BASE config var
+
+```bash
+heroku buildpacks:add -i 1 -a <SERVER-APP-NAME> https://github.com/lstoll/heroku-buildpack-monorepo
+heroku config:set -a <SERVER-APP-NAME> APP_BASE=server
+heroku buildpacks:add -i 1 -a <CLIENT-APP-NAME> https://github.com/lstoll/heroku-buildpack-monorepo
+heroku config:set -a <CLIENT-APP-NAME> APP_BASE=client
+```
+
+4. Deploy
+
+## 3.0.0-beta.20
+
+The key changes in this release are:
+
+- Context based reporting for Rollbar
+- ModelIndexCard fixes
+- Better API mocking for tests
+
+## 3.0.0-beta.19
+
+The key changes in this release are:
+
+- Group oriented [fields](ui/fields) and [displays](ui/displays)
+- ESLint and prettier updates
+
+## 3.0.0-beta.18
+
+The key changes in this release are:
+
+- Merged and typed [configuration](ui/general)
+- Overridable Auth pages
+- Improved alert look and feel
+- Design page improvements
+
+### Merged and typed configuration
+
+If you receive a merge conflict in src/config.js while updating to this version, transfer your settings to src/rhino.config.js and delete src/config.js.
+
+## 3.0.0-beta.17
+
+The key changes in this release are:
+
+- Default sender email address configurable from the `DEFAULT_EMAIL_SENDER` environment variable
+- Design System subapp accessible through the side menu or at `/__design`
+- All base fields globally overridable
+- Base skeleton count on limit
+
+## 3.0.0-beta.16
+
+The key changes in this release are:
+
+- React-Router 6
+- New default shell
+- Index table inline sorting/multi-sorting and skeleton loading
+- Bootstrap 5.3.2
+- Improved linting (eslint:recommended, cypress, vitest tests)
+- Global/model/attribute scoped overrides for `rhino.config.js`
+
+### React-Router 6
+
+See https://reactrouter.com/en/main/upgrading/v5
+
+## 3.0.0-beta.15
+
+The key changes in this release are:
+
+- React 18 with @testing-library/react update
+- Remove unused 2.x code
+- Handle multiple or no slashes in REACT_APP_API_ROOT_PATH
+
+### React 18
+
+May require additional installed project libraries to be upgraded. `@testing-library/react` was upgraded and renderHook was moved to the core library instead of a separate package.
+
+### Unused 2.x code
+
+ModelFormField and ModelTable were the primary components that were removed. These were replaced by the react-hook-form based ModelField a ModelIndexTable respectively.
+
+### Handle multiple or no slashes in REACT_APP_API_ROOT_PATH
+
+Make sure you have REACT_APP_API_ROOT_PATH defined locally in .env and in production
+
+## 3.0.0-beta.14
+
+The key changes in this release are:
+
+- Rails 7.0.8 and OmniAuth 2.x
+- ESLint and prettier updates
+- CI and test improvements
+
+### ESLint and prettier updates
+
+The ESLint and prettier configurations have been updated to the latest versions. This may result in some linting errors in your code. The easiest way to fix these is to run the following command:
+
+```bash
+npx eslint --fix --ignore-pattern "__tests__" src
+```
+
+## 3.0.0-beta.13
+
+The key changes in this release are:
+
+- heroku-22 stack support
+- Vite & Vitest for client
+- Rails 7.0.7.2
+
+### heroku-22
+
+The default Heroku stack `heroku-22` is now supported. This is the default stack for new Heroku apps. Server apps need no changes, simply update the stack:
+
+```bash
+heroku stack:set heroku-22 -a <APP-NAME>
+```
+
+and redeploy.
+
+Client apps need to update the buildpacks.
+
+```bash
+heroku buildpacks:clear -a <APP-NAME>
+heroku buildpacks:add heroku/nodejs -a <APP-NAME>
+heroku buildpacks:add heroku-community/nginx -a <APP-NAME>
+heroku stack:set heroku-22 -a <APP-NAME>
+```
+
+and redeploy.
+
+### Vite & Vitetest
+
+[Vite](https://vitejs.dev/) is a new build tool for javascript and typescript and is the default for Rhino 3.0.0-beta.13. It is also used for the new [Vitest](https://vitest.dev/) tool which is a replacement for jest. See the [testing guide](testing) for more details.
+
+## 3.0.0-beta.12
+
+The key changes in this release are:
+
+- React Query 4
+- Rails 7.0.7
+
+### React Query 4
+
+#### Imports
+
+The imports for react query have [changed](https://tanstack.com/query/latest/docs/react/guides/migrating-to-react-query-4#react-query-is-now-tanstackreact-query)
+
+```diff
+- import { useQuery } from 'react-query'
+- import { ReactQueryDevtools } from 'react-query/devtools'
+
++ import { useQuery } from '@tanstack/react-query'
++ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+```
+
+Run the [codemod](https://tanstack.com/query/latest/docs/react/guides/migrating-to-react-query-4#codemod) to update your code:
+
+```bash
+npx jscodeshift src/ \
+  --extensions=js,jsx \
+  --transform=./node_modules/@tanstack/react-query/codemods/v4/replace-import-specifier.js
+```
+
+#### Query keys
+
+All query keys **must** be [arrays now](https://tanstack.com/query/latest/docs/react/guides/migrating-to-react-query-4#query-keys-and-mutation-keys-need-to-be-an-array) - the query linter should find most instances of this
+
+:::info
+The query linter should find most instances of this
+:::
+
+#### Loading indicators
+
+`isLoading` behavior has changed for [disabled queries](https://tanstack.com/query/latest/docs/react/guides/migrating-to-react-query-4#disabled-queries) - it is better to use `isInitialLoading` for loading flags.
+
+:::danger
+Failure to update loading code may result in unpredictable results
+:::
+
+## 3.0.0-beta.11
+
+The key changes in this release are:
+
+- Direct use of ModelField, ModelDisplay for complex layouts
+- Bootstrap 5.3
+- Rails 7.0.5 and ruby 3.1.4
+
+## 3.0.0-beta.10
+
+The key changes in this release are:
+
+- More consistent overrides patterns for both local and global overrides in ModelIndex, ModelShow, ModelCreate, ModelEdit
+- ModelContext and useModelContext hook to access model context in any view controller
+
+## 3.0.0-beta.9
+
+The key changes in this release are:
+
+- Reactstrap 9 and Bootstrap 5
+  - See [Reactstrap 9 Migration Guide](https://reactstrap.github.io/?path=/docs/home-upgrading--page) for more details
+
+## 3.0.0-beta.8
+
+The key changes in this release are:
+
+- Create and edit controllers for ModelEdit, ModelEditModal, ModelCreate and ModelCreateModal
+- Create, Edit, Index and Show Actions overhaul
+  - Rrepend/append/replace actions
+  - Use Custom components directly in the actions prop
+- Improve access control UI for org mode
+- Route path helpers
+  - getRootPath, getIndexPath, getShowPath, getEditPath, getCreatePath etc
+
+### Create and edit controllers
+
+Customized uses of ModelEdit and ModelCreate will need the following changes:
+
+- ModelEdit,
+  - modelId is now passed to the modal as a prop (instead of resource)
+- ModelCreate
+  - modelId is now passed to the modal as a prop (instead of resource)
+- ModelEditModal usage has to be altered
+  - modelId is now passed to the modal as a prop (instead of resource)
+
+### Actions overhaul
+
+Custom actions are not backwards compatible.
+
+- Custom actions in the object style are no longer supported. Something like:
+
+```json
+{
+  name: 'auto',
+  label: 'Generate Payout',
+  color: 'warning',
+  icon: 'gear',
+  onAction: handleGeneratePayouts
+}
+```
+
+should be replace with an `<IconButton />` component
+
+### Route path helpers
+
+Easier to use helpers for route paths are now available. For example:
+
+```jsx
+import { getModelIndexPath } from "rhino/utils/routes";
+
+const MyComponent = () => {
+  const path = getModelIndexPath("invoice");
+  return <Link to={path}>Invoices</Link>;
+};
+```
+
+## 3.0.0-beta.7
+
+The key changes in this release are:
+
+- New UI system for show pages with ModelDisplay
+
+## 3.0.0-beta.6
+
+The key changes in this release are:
+
+- New support for per model and per attribute overrides in `rhino.config.js`
+  - Not all components are currently covered, but ModelCells* and ModelFilters* and ModelIndexTable are
+- Controller and context for ModelShow with ModelShowBase
+
+## 3.0.0-beta.5
+
+The key changes in this release are:
+
+- ModelIndexTable no longer uses ModelTable internally and uses react-table 8 see [table and cells guide](ui/cells) for more details
+- Update to Cypress 12
+
+### Path dot syntax
+
+Use dot syntax only for paths now to support react-table and react-hook-form. For example:
+
+```diff title="src/models/overrides.js"
+const globalOverrides = {
+  invoice: {
+    index: {
+      ModelIndexTable: {
+        props: {
+          paths: [
+-            "external_linked_teams[0].display_name",
++            "external_linked_teams.0.display_name",
+          ],
+        },
+      },
+    },
+  },
+};
+```
+
+See https://react-hook-form.com/api/useform/register/#rules and https://tanstack.com/table/v8/docs
+
+### ModelIndexTable/ModelTable overrides
+
+Because ModelIndexTable no longer uses ModelTable internally, any path overrides to ModelTable should be updated to use ModelIndexTable instead, however simple cases are backwards compatible. For example:
+
+```jsx title="src/models/overrides.js"
+const globalOverrides = {
+  invoice: {
+    index: {
+      ModelIndexTable: {
+        // highlight-next-line
+        ModelTable: {
+          props: {
+            paths: [
+              "id",
+              "project.client",
+              "project",
+              "project.billing_frequency",
+              "beginning_at",
+              "ending_at",
+              "currency",
+              "amount",
+              "approved",
+              "quickbooks_number",
+              "invoiced",
+            ],
+          },
+          // highlight-next-line
+        },
+      },
+    },
+  },
+};
+```
+
+becomes
+
+```jsx title="src/models/overrides.js"
+const globalOverrides = {
+  invoice: {
+    index: {
+      ModelIndexTable: {
+        props: {
+          paths: [
+            "id",
+            "project.client",
+            "project",
+            "project.billing_frequency",
+            "beginning_at",
+            "ending_at",
+            "currency",
+            "amount",
+            "approved",
+            "quickbooks_number",
+            "invoiced",
+          ],
+        },
+      },
+    },
+  },
+};
+```
+
+## 3.0.0-beta.4
+
+The key changes in this release are:
+
+- Controller and context for ModelIndex with ModelIndexBase
+- exclusiveMininum and exclusiveMaximum support for ModelFilterDate, ModelFilterDateTime and ModelFilterYear
+- String type for filters
+- Allow attachment links in the index table to be opened without moving to the view of the item
+
+### Custom ModelIndex\* components
+
+Custom ModelIndex\* components will need to use the new controller and context. Generally this will be done by using the new useModelIndexContext hook instead of relying on prop drilling. For example:
+
+```diff
+-const RecruitingBoard = ({ loading, team_season, resources }) => {
++const RecruitingBoard = ({ team_season }) => {
++  const { isLoading: loading, resources } = useModelIndexContext();
+```
+
+### Custom Filters
+
+Custom filters will need to use the new controller and context - see the [filters guide](ui/filters) for more details.
+
+## 3.0.0-beta.3
+
+The key changes in this release are:
+
+- Case insensitive sorting for ModelFilterReference
+- JSX components path for filters
+
+## 3.0.0-beta.2
+
+The key changes in this release are:
+
+- Filters are now based on react-hook-form and support devtools for debugging
+- Float and Year filters has been added
+- Model Integer and Model Float filters now support minimum and and maximum values (and exclusiveMinimum and exclusiveMaximum)
+- Separate filters for globally owned models (ModelFilterReference) and non-globally owned models (ModelFilterOwnerReference)
+
+All of the above changes should be backwards compatible unless you have created any custom filters. In that case you will need to update them to use react-hook-form.
+
+## 3.0.0-beta.1
+
+The key changes in this release are:
+
+- Model has been simplified
+- Data access and query hook arguments have been updated to be more explicit and easier to use.
+- react-hook-form is now included as a dependency and used for the authentication forms (sign in, sign up, forgot password, reset password)
+  - More support for this will be added in future releases
+
+See below for more details.
+
+### Model fetching
+
+#### Passing to API query and mutation hooks
+
+Historically `getModel` was used to fetch a model object and then pass it too an API hook, but this is no longer necessary as the hooks will create a memoized model object for you and also return it.
+
+```jsx
+const { data } = useModelShow(getModel("warehouse"), resource.warehouse.id);
+```
+
+becomes:
+
+```jsx
+const { data } = useModelShow("warehouse", resource.warehouse.id);
+```
+
+and if you need the model object:
+
+```jsx
+const { data, model: warehouseModel } = useModelShow(
+  "warehouse",
+  resource.warehouse.id
+);
+```
+
+#### Other uses
+
+In some cases the model object was used for other purposes, for instance to construct a URL. In this case the `getModel` function may have been used directly and possibly memoized. The `useModel` hook can be used to achieve the same result:
+
+```jsx
+const model = useMemo(() => getModel("warehouse"), []);
+```
+
+becomes:
+
+```jsx
+const model = useModel("warehouse");
+```
+
+useModel will handle the case where the model is already an object and will return it directly in that case already memoized.
+
+```jsx
+const MyComponent = ({ model }) => {
+  const componentModel = useModel(model);
+  const { data } = useModelShow(componentModel, resource.warehouse.id);
+};
+```
+
+### Model query hook arguments
+
+In general the hooks are backwards compatible with older arguments styles, but it is recommended to migrate to the new format. Here are a list of patterns that can be migrated with 2.1.0.
+
+Previous versions of the hooks the second parameter of the index hook to pass options to the network call which created the query params for filtering, limit, offset, order, search and also used the third parameter to pass options to react query. A more explicit API has been introduced filtering, limit, offset, order, search and the options for react query are now passed as a named object in the second parameter..
+
+```jsx
+const { data } = useModelIndex(
+  "users_role",
+  {
+    params: {
+      filter: { user_id: user.id },
+    },
+  },
+  { enabled: false }
+);
+```
+
+becomes:
+
+```jsx
+const { data } = useModelIndex("users_role", {
+  filter: { user_id: user.id },
+  queryOptions: { enabled: false },
+});
+```
+
+#### networkOptions
+
+Previous versions of the also allowed used a `networkOptions` object to pass parameters to the network call which created the sear. This has been replaced with a more explicit API.
+
+```jsx
+const { data } = useModelIndex("users_role", {
+  networkOptions: {
+    params: {
+      filter: { user_id: user.id },
+    },
+  },
+});
+```
+
+```jsx
+const { data } = useModelIndex(model, {
+  filter: { user_id: user.id },
+});
+```
+
+### Model hook data access
+
+Previous versions of the hooks used the `data` property of the react query response to access the data. This data property contained the full axios response including things like `header`. The body of an axios response is in the `data` property and so there were many `data.data` style access. The data is now directly available in the `data` property of the query responses:
+
+```jsx
+const { data: { data: { results = [] } = {} } = {} } = useModelIndex(
+    'users_role',
+    filter: { user: loggedInUserId }
+  );
+```
+
+becomes:
+
+```jsx
+const { data: { results = [] } = {} } = useModelIndex(
+    'users_role',
+    filter: { user: loggedInUserId }
+  );
+```
+
+similarly for useModelShow:
+
+```jsx
+const { data: { data: resource } = {} } = useModelShow(
+  "warehouse",
+  warehouseId
+);
+```
+
+becomes:
+
+```jsx
+const { resource } = useModelShow("warehouse", warehouseId);
+```
+
+and in the callbacks of the mutation hooks:
+
+```jsx
+const { mutate } = useModelCreate("warehouse", {
+  onSuccess: (data) =>
+    history.push(`/warehouses/${data.data.id}`);
+});
+```
+
+becomes:
+
+```jsx
+const { mutate } = useModelCreate("warehouse", {
+  onSuccess: (newWarehouse) =>
+    history.push(`/warehouses/${newWarehouse.id}`);
+});
+```
+
+### useModelIndex data helpers
+
+There are also now direct accessors for the resources, results and total count in useModelIndex:
+
+```jsx
+const { data: { data: { results = [] } = {} } = {} } = useModelIndex(
+    'users_role',
+    filter: { user: loggedInUserId }
+  );
+```
+
+```jsx
+const { resources, results = [], total } = useModelIndex(
+    'users_role',
+    filter: { user: loggedInUserId }
+  );
+```

@@ -1,0 +1,122 @@
+# File Storage
+
+File storage capabilities are available in Rhino with the [ActiveStorage](https://guides.rubyonrails.org/active_storage_overview.html). Rhino provides an authenticated endpoint for redirect mode in ActiveStorage as well as direct upload integration on the frontend.
+
+In development ActiveStorage is used to . Set up a cloud provider storage service to use ActiveStorage in production and then use the standard `has_one_attached` and `has_many_attached` methods to attach files to your models and add the attachment as a permitted reference in your controller.
+
+```ruby
+class Blog < ApplicationRecord
+  belongs_to :user
+
+  # highlight-next-line
+  has_one_attached :banner
+
+  rhino_owner_base
+  # highlight-next-line
+  rhino_references [:banner_attachment]
+end
+```
+
+or for multiple attachments:
+
+```ruby
+class BlogPost < ApplicationRecord
+  belongs_to :blog
+
+  # highlight-next-line
+  has_many_attached :images
+
+  rhino_owner :blog
+
+  # highlight-next-line
+  rhino_references [:images_attachments]
+end
+```
+
+## Variants, Previews, and Representations
+
+ActiveStorage provides a number of ways to manipulate and display images and other files. Variants are used to resize images and previews are used to generate thumbnails. Representations are used to generate different formats of the file.
+
+```ruby
+class BlogPost < ApplicationRecord
+  belongs_to :blog
+
+  # highlight-next-line
+  has_many_attached :images do |attachable|
+    attachable.variant :thumb, resize_and_pad: [ 100, 100 ], preprocessed: true
+  end
+
+  rhino_owner :blog
+  # highlight-next-line
+  rhino_references [:images_attachments]
+end
+```
+
+:::tip
+The `preprocessed: true` option is used to generate the variant when the file is uploaded. This is useful for generating thumbnails and other variants when the file is uploaded in the background.
+:::
+
+The Rhino API returns the URL for the variant, preview, or representation in the API response. The URL can be used to display the image or preview in the frontend.
+
+## S3
+
+To use S3 as your cloud provider, add the `aws-sdk-s3` gem to your Gemfile:
+
+```bash
+bundle add aws-sdk-s3
+```
+
+Then configure your storage service in with the environment variables `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, `AWS_REGION`, and `AWS_S3_BUCKET` which are used by default in `config/storage.yml`:
+
+```yaml title="config/storage.yml"
+service: S3
+access_key_id: <%= ENV['AWS_ACCESS_KEY'] %>
+secret_access_key: <%= ENV['AWS_SECRET_KEY'] %>
+region: <%= ENV['AWS_REGION'] %>
+bucket: <%= ENV['AWS_S3_BUCKET'] %>
+```
+
+And finally, change the active storage service from `:local` to `:amazon` in `config/environments/production.rb` file:
+
+```ruby
+config.active_storage.service = :amazon
+```
+
+:::warning
+You must set up CORS for the bucket you are using to allow uploads from your domain. See [this sample](https://guides.rubyonrails.org/active_storage_overview.html#example-s3-cors-configuration) for more information.
+:::
+
+## Google Cloud Storage
+
+To use Google Cloud Storage as your cloud provider, add the `google-cloud-storage` gem to your Gemfile:
+
+```bash
+bundle add google-cloud-storage
+```
+
+Then configure your storage service in with the environment variables `GOOGLE_ACCOUNT_TYPE`, `GOOGLE_PROJECT_ID`, `GOOGLE_PRIVATE_KEY_ID`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_CLIENT_EMAIL`, `GOOGLE_CLIENT_ID` and `GOOGLE_BUCKET` which are used by default in `config/storage.yml`:
+
+```yaml title="config/storage.yml"
+google:
+  service: GCS
+  credentials:
+    type: <%= ENV.fetch('GOOGLE_ACCOUNT_TYPE') %>
+    project_id: <%= ENV.fetch('GOOGLE_PROJECT_ID') %>
+    private_key_id: <%= ENV.fetch('GOOGLE_PRIVATE_KEY_ID') %>
+    private_key: |
+      <%=  ENV.fetch('GOOGLE_PRIVATE_KEY').lines.map.with_index { |l, i| i == 0 ? l : "      #{l}" }.join %>
+    client_email: <%= ENV.fetch('GOOGLE_CLIENT_EMAIL') %>
+    client_id: <%= ENV.fetch('GOOGLE_CLIENT_ID') %>
+  project: <%= ENV.fetch('GOOGLE_PROJECT_ID') %>
+  bucket: <%= ENV.fetch('GOOGLE_BUCKET') %>
+```
+
+And finally, change the active storage service from `:local` to `:google` in `config/environments/production.rb` file:
+
+```ruby
+config.active_storage.service = :google
+```
+
+:::warning
+You must set up CORS for the bucket you are using to allow uploads from your domain. See [this sample](https://guides.rubyonrails.org/active_storage_overview.html#example-google-cloud-storage-cors-configuration) for more information.
+:::
